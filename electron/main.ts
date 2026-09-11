@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 // Load environment variables (.env)
 dotenv.config();
 if (app.isPackaged) {
+  dotenv.config({ path: path.join(process.resourcesPath, 'app', '.env') });
   dotenv.config({ path: path.join(process.resourcesPath, '.env') });
   dotenv.config({ path: path.join(path.dirname(process.execPath), '.env') });
 }

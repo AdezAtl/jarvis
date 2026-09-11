@@ -32,6 +32,7 @@ async function build() {
   
   if (await fs.pathExists(path.join(rootDir, '.env'))) {
     await fs.copy(path.join(rootDir, '.env'), path.join(appTarget, '.env'));
+    await fs.copy(path.join(rootDir, '.env'), path.join(outDir, 'resources', '.env')).catch(() => {});
     await fs.copy(path.join(rootDir, '.env'), path.join(outDir, '.env')).catch(() => {});
   }
 

@@ -39,6 +39,9 @@ export class GeminiService {
   private openAIHistory: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = [];
 
   constructor() {
+    this.groqApiKey = this.sanitizeKey(process.env.GROQ_API_KEY || '');
+    this.geminiApiKey = this.sanitizeKey(process.env.GEMINI_API_KEY || '');
+
     // Determine default provider from environment
     if (process.env.DEFAULT_AI_PROVIDER === 'gemini') {
       this.provider = 'gemini';
@@ -54,24 +57,28 @@ export class GeminiService {
 
   // ---------------- CONFIGURATION & STATE ----------------
 
+  private sanitizeKey(key: string): string {
+    return (key || '').replace(/^["']|["']$/g, '').trim();
+  }
+
   setApiKey(key: string) {
-    this.geminiApiKey = key.trim();
+    this.geminiApiKey = this.sanitizeKey(key);
   }
 
   getApiKey(): string {
     if (!this.geminiApiKey && process.env.GEMINI_API_KEY) {
-      this.geminiApiKey = process.env.GEMINI_API_KEY.trim();
+      this.geminiApiKey = this.sanitizeKey(process.env.GEMINI_API_KEY);
     }
     return this.geminiApiKey;
   }
 
   setGroqApiKey(key: string) {
-    this.groqApiKey = key.trim();
+    this.groqApiKey = this.sanitizeKey(key);
   }
 
   getGroqApiKey(): string {
     if (!this.groqApiKey && process.env.GROQ_API_KEY) {
-      this.groqApiKey = process.env.GROQ_API_KEY.trim();
+      this.groqApiKey = this.sanitizeKey(process.env.GROQ_API_KEY);
     }
     return this.groqApiKey;
   }
