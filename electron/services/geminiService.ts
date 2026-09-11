@@ -223,7 +223,7 @@ export class GeminiService {
       };
     }
 
-    const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+    const modelName = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${activeKey}`;
 
     const userParts: Array<Record<string, unknown>> = [];
@@ -405,7 +405,7 @@ Keep verbal confirmations punchy, elegant, and definitive (e.g. "On it, sir.", "
       };
     }
 
-    const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+    const modelName = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${activeKey}`;
 
     const userParts: Array<Record<string, unknown>> = [
