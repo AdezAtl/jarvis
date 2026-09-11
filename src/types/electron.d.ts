@@ -16,6 +16,7 @@ export interface IElectronAPI {
   setWindowPosition: (x: number, y: number) => Promise<void>;
   getWindowPosition: () => Promise<{ x: number; y: number }>;
   onToggleHotkey: (callback: () => void) => void;
+  onVoiceHotkey?: (callback: () => void) => void;
   onWindowStateChanged?: (callback: (expanded: boolean) => void) => void;
 
   getMetrics: () => Promise<SystemMetrics>;

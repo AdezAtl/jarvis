@@ -25,6 +25,8 @@ export class SystemControlService {
   private psWorker: ChildProcess | null = null;
   private isPsReady = false;
 
+  private currentVolume: number = 70;
+
   constructor() {
     this.initPersistentPowerShell();
   }
@@ -201,14 +203,32 @@ Write-Output "PS_READY"
   /**
    * Audio & Media: Adjust or set master volume (0-100 or relative +/-) instantaneously
    */
-  async adjustVolume(levelOrDelta: number, _isAbsolute = false): Promise<string> {
-    const isUp = levelOrDelta >= 0;
+  async adjustVolume(levelOrDelta: number, isAbsolute = false): Promise<string> {
+    let delta: number;
+    let targetVolume: number;
+
+    if (isAbsolute) {
+      targetVolume = Math.max(0, Math.min(100, Math.round(levelOrDelta)));
+      delta = targetVolume - this.currentVolume;
+      this.currentVolume = targetVolume;
+    } else {
+      delta = Math.round(levelOrDelta);
+      this.currentVolume = Math.max(0, Math.min(100, this.currentVolume + delta));
+      targetVolume = this.currentVolume;
+    }
+
+    if (delta === 0) {
+      return `Volume is already at ${this.currentVolume}%`;
+    }
+
+    const isUp = delta > 0;
     const vk = isUp ? 0xAF : 0xAE; // VK_VOLUME_UP or VK_VOLUME_DOWN
-    const count = Math.min(20, Math.max(1, Math.round(Math.abs(levelOrDelta) / 2)));
+    // Each Windows volume step is 2%
+    const count = Math.min(50, Math.max(1, Math.round(Math.abs(delta) / 2)));
 
     // Instant execution via persistent worker (0ms - 2ms)
     if (this.sendKeyFast(vk, count)) {
-      return `Volume ${isUp ? 'increased' : 'decreased'} (${count} steps)`;
+      return `Volume set to ${this.currentVolume}% (${isUp ? '+' : '-'}${count * 2}%)`;
     }
 
     // Fallback if worker initializing
@@ -225,7 +245,7 @@ Write-Output "PS_READY"
       const { stdout } = await execAsync(
         `powershell -NoProfile -ExecutionPolicy Bypass -File "${scriptPath}" -action ${action} -count ${count}`
       );
-      return stdout.trim() || `Volume updated (${action} ${count} steps)`;
+      return stdout.trim() || `Volume set to ${this.currentVolume}%`;
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       return `Failed to adjust volume: ${errorMsg}`;

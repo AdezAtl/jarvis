@@ -12,32 +12,22 @@ interface WeatherData {
 
 export const WeatherWidget: React.FC = () => {
   const [weather, setWeather] = useState<WeatherData>({
-    city: 'LOCAL METRO',
+    city: 'IBADAN, NG',
     temperature: 24,
     condition: 'OPTIMAL / CLEAR',
-    humidity: 58,
-    windSpeed: 12,
-    icon: 'sun',
+    humidity: 75,
+    windSpeed: 8,
+    icon: 'cloud',
   });
   const [loading, setLoading] = useState(false);
 
   const fetchWeather = async () => {
     setLoading(true);
     try {
-      // First get approximate coordinates via IP
-      const ipRes = await fetch('https://ipapi.co/json/').catch(() => null);
-      let lat = 51.5074;
-      let lon = -0.1278;
-      let cityName = 'LONDON';
-
-      if (ipRes && ipRes.ok) {
-        const ipData = await ipRes.json();
-        if (ipData.latitude && ipData.longitude) {
-          lat = ipData.latitude;
-          lon = ipData.longitude;
-          cityName = (ipData.city || 'LOCAL SECTOR').toUpperCase();
-        }
-      }
+      // Primary location: Ibadan, Oyo State, Nigeria
+      const lat = 7.3775;
+      const lon = 3.9470;
+      const cityName = 'IBADAN, NG';
 
       // Fetch live weather from Open-Meteo
       const weatherRes = await fetch(

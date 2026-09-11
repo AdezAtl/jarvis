@@ -75,6 +75,13 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
 
+  // Automatically collapse expanded HUD when clicking outside the window
+  mainWindow.on('blur', () => {
+    if (isExpanded) {
+      toggleWindowExpand(false);
+    }
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
@@ -140,6 +147,11 @@ app.whenReady().then(() => {
 
   globalShortcut.register('CommandOrControl+Shift+J', () => {
     toggleWindowExpand();
+  });
+
+  // Register Shift+F9 voice listening combo
+  globalShortcut.register('Shift+F9', () => {
+    mainWindow?.webContents.send('voice:hotkey-listening');
   });
 
   if (isDev) {

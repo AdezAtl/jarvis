@@ -5,11 +5,80 @@ import { SettingsModal } from './components/SettingsModal';
 import { SystemMetrics } from './types/electron';
 import { jarvisAudio } from './services/soundEffects';
 
+export interface LogEntry {
+  id: string;
+  sender: 'user' | 'jarvis' | 'system';
+  text: string;
+  toolDetails?: { name: string; result?: string };
+  time: string;
+}
+
+const STORAGE_KEY = 'jarvis_chat_history';
+
+function loadInitialLogs(): LogEntry[] {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch {}
+  return [
+    {
+      id: '1',
+      sender: 'jarvis',
+      text: 'J.A.R.V.I.S. Mark-VII core online. Atmospheric, hardware, and neural matrices active. Ready for instructions, sir.',
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    },
+  ];
+}
+
 export const App: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
   const [status, setStatus] = useState<'idle' | 'listening' | 'thinking' | 'speaking'>('idle');
+
+  // Persistent conversation logs across minimize/maximize and app restarts
+  const [logs, setLogs] = useState<LogEntry[]>(loadInitialLogs);
+
+  const addLog = (
+    sender: 'user' | 'jarvis' | 'system',
+    text: string,
+    toolDetails?: { name: string; result?: string }
+  ) => {
+    const entry: LogEntry = {
+      id: Date.now().toString(),
+      sender,
+      text,
+      toolDetails,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+    setLogs((prev) => {
+      const next = [...prev, entry].slice(-80);
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  const clearLogs = () => {
+    const initial: LogEntry[] = [
+      {
+        id: Date.now().toString(),
+        sender: 'jarvis',
+        text: 'Console history reset. Mark-VII core standing by, sir.',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      },
+    ];
+    setLogs(initial);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
+    } catch {}
+  };
 
   const [analyserNode, setAnalyserNode] = useState<AnalyserNode | null>(null);
   const [isAudioActive, setIsAudioActive] = useState(false);
@@ -32,6 +101,7 @@ export const App: React.FC = () => {
     }
   };
 
+  // Hotkeys & Window state sync
   useEffect(() => {
     if (window.electronAPI) {
       window.electronAPI.onToggleHotkey(() => {
@@ -53,6 +123,7 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isExpanded]);
 
+  // Periodic metrics polling
   useEffect(() => {
     let isMounted = true;
 
@@ -78,12 +149,61 @@ export const App: React.FC = () => {
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const [voiceEvent, setVoiceEvent] = useState<{
-    id: string;
-    userText?: string;
-    responseText: string;
-    toolCall?: any;
-  } | null>(null);
+
+  // Start Wake-Word listener for "jarvis"
+  const startWakeWordListener = () => {
+    const SpeechRecognitionClass =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognitionClass) return;
+
+    try {
+      if (speechRecognitionRef.current) {
+        try {
+          speechRecognitionRef.current.stop();
+        } catch {}
+      }
+
+      const recognition = new SpeechRecognitionClass();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onresult = (event: any) => {
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          const transcript = event.results[i][0].transcript.toLowerCase();
+          if (transcript.includes('jarvis')) {
+            try {
+              recognition.stop();
+            } catch {}
+            handleToggleExpand(true);
+            jarvisAudio.playSuccess();
+            jarvisAudio.speak('At your service, sir. Systems online.');
+            break;
+          }
+        }
+      };
+
+      recognition.onerror = () => {};
+      recognition.start();
+      speechRecognitionRef.current = recognition;
+    } catch (err) {
+      console.warn('Wake word speech recognition notice:', err);
+    }
+  };
+
+  // Listen for Shift+F9 combo from Electron
+  useEffect(() => {
+    if (window.electronAPI?.onVoiceHotkey) {
+      window.electronAPI.onVoiceHotkey(() => {
+        if (!isAudioActive) {
+          startAudioListening();
+          startWakeWordListener();
+        } else {
+          stopAudioListening();
+        }
+      });
+    }
+  }, [isAudioActive, isExpanded]);
 
   const startAudioListening = async () => {
     try {
@@ -131,6 +251,12 @@ export const App: React.FC = () => {
     setIsAudioActive(false);
     setStatus('thinking');
 
+    if (speechRecognitionRef.current) {
+      try {
+        speechRecognitionRef.current.stop();
+      } catch {}
+    }
+
     const recorder = mediaRecorderRef.current;
     if (recorder && recorder.state !== 'inactive') {
       recorder.onstop = async () => {
@@ -149,17 +275,21 @@ export const App: React.FC = () => {
                     base64Data,
                     recorder.mimeType || 'audio/webm'
                   );
-                  setVoiceEvent({
-                    id: Date.now().toString(),
-                    userText: '🎙️ [Voice Audio Command]',
-                    responseText: res.text,
-                    toolCall: res.toolCall,
-                  });
+                  addLog('user', '🎙️ [Voice Audio Command]');
+                  addLog(
+                    'jarvis',
+                    res.text,
+                    res.toolCall ? { name: res.toolCall.name, result: res.toolCall.result } : undefined
+                  );
+                  jarvisAudio.playSuccess();
+                  jarvisAudio.speak(res.text);
+
+                  // Expand HUD automatically if minimized
+                  if (!isExpanded) {
+                    handleToggleExpand(true);
+                  }
                 } catch (e: any) {
-                  setVoiceEvent({
-                    id: Date.now().toString(),
-                    responseText: `Audio processing error: ${e.message || e}`,
-                  });
+                  addLog('system', `Audio processing error: ${e.message || e}`);
                 } finally {
                   setStatus('idle');
                 }
@@ -198,9 +328,14 @@ export const App: React.FC = () => {
             metrics={metrics}
             analyserNode={analyserNode}
             isAudioActive={isAudioActive}
-            onStartListening={startAudioListening}
+            onStartListening={() => {
+              startAudioListening();
+              startWakeWordListener();
+            }}
             onStopListening={stopAudioListening}
-            voiceEvent={voiceEvent}
+            logs={logs}
+            onAddLog={addLog}
+            onClearLogs={clearLogs}
           />
           <SettingsModal
             isOpen={isSettingsOpen}

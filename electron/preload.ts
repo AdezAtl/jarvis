@@ -6,6 +6,7 @@ export interface IElectronAPI {
   setWindowPosition: (x: number, y: number) => Promise<void>;
   getWindowPosition: () => Promise<{ x: number; y: number }>;
   onToggleHotkey: (callback: () => void) => void;
+  onVoiceHotkey: (callback: () => void) => void;
   onWindowStateChanged: (callback: (expanded: boolean) => void) => void;
 
   // System Automation
@@ -30,6 +31,9 @@ const api: IElectronAPI = {
   getWindowPosition: () => ipcRenderer.invoke('window:get-position'),
   onToggleHotkey: (callback: () => void) => {
     ipcRenderer.on('hotkey:toggle', () => callback());
+  },
+  onVoiceHotkey: (callback: () => void) => {
+    ipcRenderer.on('voice:hotkey-listening', () => callback());
   },
   onWindowStateChanged: (callback: (expanded: boolean) => void) => {
     ipcRenderer.on('window:state-changed', (_event, expanded: boolean) => callback(expanded));

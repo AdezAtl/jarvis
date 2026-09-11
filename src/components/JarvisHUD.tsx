@@ -17,11 +17,13 @@ import {
   Radio,
   Music,
 } from 'lucide-react';
+import { animate } from 'animejs';
 import { AudioVisualizer } from './AudioVisualizer';
 import { TelemetryRadar } from './TelemetryRadar';
 import { WeatherWidget } from './WeatherWidget';
 import { SystemMetrics } from '../types/electron';
 import { jarvisAudio } from '../services/soundEffects';
+import { LogEntry } from '../App';
 
 interface JarvisHUDProps {
   onCollapse: () => void;
@@ -31,15 +33,13 @@ interface JarvisHUDProps {
   isAudioActive: boolean;
   onStartListening: () => void;
   onStopListening: () => void;
-  voiceEvent?: { id: string; userText?: string; responseText: string; toolCall?: any } | null;
-}
-
-interface LogEntry {
-  id: string;
-  sender: 'user' | 'jarvis' | 'system';
-  text: string;
-  toolDetails?: { name: string; result?: string };
-  time: string;
+  logs: LogEntry[];
+  onAddLog: (
+    sender: 'user' | 'jarvis' | 'system',
+    text: string,
+    toolDetails?: { name: string; result?: string }
+  ) => void;
+  onClearLogs: () => void;
 }
 
 export const JarvisHUD: React.FC<JarvisHUDProps> = ({
@@ -50,8 +50,11 @@ export const JarvisHUD: React.FC<JarvisHUDProps> = ({
   isAudioActive,
   onStartListening,
   onStopListening,
-  voiceEvent,
+  logs,
+  onAddLog,
+  onClearLogs,
 }) => {
+  const addLog = onAddLog;
   const [inputPrompt, setInputPrompt] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isCapturingScreen, setIsCapturingScreen] = useState(false);
@@ -66,28 +69,29 @@ export const JarvisHUD: React.FC<JarvisHUDProps> = ({
     setIsAudioMuted(next);
   };
 
-  const [logs, setLogs] = useState<LogEntry[]>([
-    {
-      id: '1',
-      sender: 'jarvis',
-      text: 'J.A.R.V.I.S. Mark-VII core online. Atmospheric, hardware, and neural matrices active. Ready for instructions, sir.',
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    },
-  ]);
-
   const logContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Sync Voice Event from App
+  // Sci-Fi HUD Outline Drawing via Anime.js on Mount
   useEffect(() => {
-    if (voiceEvent) {
-      if (voiceEvent.userText) {
-        addLog('user', voiceEvent.userText);
-      }
-      addLog('jarvis', voiceEvent.responseText, voiceEvent.toolCall);
-      jarvisAudio.playSuccess();
-      jarvisAudio.speak(voiceEvent.responseText);
+    try {
+      const paths = document.querySelectorAll<SVGPathElement>('.hud-anime-path');
+      paths.forEach((path) => {
+        const length = path.getTotalLength ? path.getTotalLength() : 800;
+        path.style.strokeDasharray = `${length}`;
+        path.style.strokeDashoffset = `${length}`;
+      });
+
+      animate('.hud-anime-path', {
+        strokeDashoffset: 0,
+        opacity: [0.1, 1],
+        duration: 950,
+        delay: (_el: any, i: number) => i * 65,
+        ease: 'inOutSine',
+      });
+    } catch (err) {
+      console.warn('Anime.js outline animation notice:', err);
     }
-  }, [voiceEvent]);
+  }, []);
 
   // Live Clock
   useEffect(() => {
@@ -108,21 +112,6 @@ export const JarvisHUD: React.FC<JarvisHUDProps> = ({
       logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
     }
   }, [logs]);
-
-  const addLog = (
-    sender: 'user' | 'jarvis' | 'system',
-    text: string,
-    toolDetails?: { name: string; result?: string }
-  ) => {
-    const entry: LogEntry = {
-      id: Date.now().toString(),
-      sender,
-      text,
-      toolDetails,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-    setLogs((prev) => [...prev, entry]);
-  };
 
   const handleSend = async (customText?: string, useVision = false) => {
     const query = (customText ?? inputPrompt).trim();
@@ -207,6 +196,83 @@ export const JarvisHUD: React.FC<JarvisHUDProps> = ({
 
   return (
     <div className="relative w-[1040px] h-[680px] rounded-2xl hud-panel border border-cyan-400/40 p-5 flex flex-col justify-between overflow-hidden shadow-[0_0_40px_rgba(0,240,255,0.2)] select-none">
+      {/* Sci-Fi Animated Outline Drawing Overlay (Anime.js) */}
+      <svg
+        className="absolute inset-0 w-full h-full pointer-events-none z-10"
+        viewBox="0 0 1040 680"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        {/* Outer Perimeter Futuristic Beveled Frame */}
+        <path
+          className="hud-anime-path"
+          d="M 28 10 L 1012 10 L 1030 28 L 1030 652 L 1012 670 L 28 670 L 10 652 L 10 28 Z"
+          stroke="rgba(0, 240, 255, 0.75)"
+          strokeWidth="1.5"
+        />
+
+        {/* Top-Left Corner Tactical Crosshairs */}
+        <path
+          className="hud-anime-path"
+          d="M 6 42 L 6 14 L 42 14"
+          stroke="rgba(0, 255, 230, 0.95)"
+          strokeWidth="2.5"
+        />
+        <path
+          className="hud-anime-path"
+          d="M 14 6 L 42 6"
+          stroke="rgba(0, 240, 255, 0.5)"
+          strokeWidth="1"
+        />
+
+        {/* Top-Right Corner Tactical Crosshairs */}
+        <path
+          className="hud-anime-path"
+          d="M 998 14 L 1034 14 L 1034 42"
+          stroke="rgba(0, 255, 230, 0.95)"
+          strokeWidth="2.5"
+        />
+        <path
+          className="hud-anime-path"
+          d="M 998 6 L 1026 6"
+          stroke="rgba(0, 240, 255, 0.5)"
+          strokeWidth="1"
+        />
+
+        {/* Bottom-Left Corner Tactical Crosshairs */}
+        <path
+          className="hud-anime-path"
+          d="M 6 638 L 6 666 L 42 666"
+          stroke="rgba(0, 255, 230, 0.95)"
+          strokeWidth="2.5"
+        />
+
+        {/* Bottom-Right Corner Tactical Crosshairs */}
+        <path
+          className="hud-anime-path"
+          d="M 998 666 L 1034 666 L 1034 638"
+          stroke="rgba(0, 255, 230, 0.95)"
+          strokeWidth="2.5"
+        />
+
+        {/* Header Dividing Neon Line */}
+        <path
+          className="hud-anime-path"
+          d="M 20 68 L 1020 68"
+          stroke="rgba(0, 240, 255, 0.45)"
+          strokeWidth="1"
+          strokeDasharray="6 3"
+        />
+
+        {/* Console Panel Sub-division Accents */}
+        <path
+          className="hud-anime-path"
+          d="M 292 84 L 292 602"
+          stroke="rgba(0, 240, 255, 0.35)"
+          strokeWidth="1"
+        />
+      </svg>
+
       {/* Decorative Grid Corner Brackets */}
       <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-cyan-400 pointer-events-none" />
       <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-cyan-400 pointer-events-none" />
@@ -447,14 +513,23 @@ export const JarvisHUD: React.FC<JarvisHUDProps> = ({
               <Terminal size={13} />
               <span>NEURAL MATRIX // GEMINI 3.6</span>
             </div>
-            <button
-              onClick={handleScreenVisionInspect}
-              disabled={isCapturingScreen}
-              className="flex items-center gap-1 px-2.5 py-1 rounded bg-cyan-500/15 border border-cyan-400/50 text-cyan-300 hover:bg-cyan-500/25 transition-colors text-[10px] font-mono"
-            >
-              <Eye size={11} className={isCapturingScreen ? 'animate-pulse text-amber-400' : 'text-cyan-400'} />
-              <span>{isCapturingScreen ? 'SCANNING...' : 'SCAN SCREEN'}</span>
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={onClearLogs}
+                className="px-2 py-1 rounded bg-slate-900/80 border border-slate-700/50 text-slate-400 hover:text-cyan-300 hover:border-cyan-500/40 transition-colors text-[10px] font-mono"
+                title="Clear conversation history"
+              >
+                CLEAR
+              </button>
+              <button
+                onClick={handleScreenVisionInspect}
+                disabled={isCapturingScreen}
+                className="flex items-center gap-1 px-2.5 py-1 rounded bg-cyan-500/15 border border-cyan-400/50 text-cyan-300 hover:bg-cyan-500/25 transition-colors text-[10px] font-mono"
+              >
+                <Eye size={11} className={isCapturingScreen ? 'animate-pulse text-amber-400' : 'text-cyan-400'} />
+                <span>{isCapturingScreen ? 'SCANNING...' : 'SCAN SCREEN'}</span>
+              </button>
+            </div>
           </div>
 
           {/* Screenshot Preview Strip if captured */}
