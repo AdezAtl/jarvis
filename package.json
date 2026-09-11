@@ -1,0 +1,41 @@
+{
+  "name": "jarvis-overlay",
+  "version": "1.0.0",
+  "description": "Sci-Fi J.A.R.V.I.S. Floating System Overlay with Gemini AI",
+  "author": "J.A.R.V.I.S. Systems",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "npm run build:electron && concurrently -k -p \"[{name}]\" -n \"VITE,ELEC\" -c \"cyan,magenta\" \"vite\" \"wait-on tcp:5173 && cross-env NODE_ENV=development electron .\"",
+    "build:electron": "tsc -p tsconfig.electron.json",
+    "build:vite": "vite build",
+    "build": "npm run build:electron && npm run build:vite",
+    "package:win": "npm run build && node scripts/build-win.js",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:win:portable": "npm run build && electron-builder --win portable",
+    "start": "electron ."
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "lucide-react": "^0.475.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "systeminformation": "^5.25.11"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^22.13.4",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
+    "electron": "^34.5.8",
+    "electron-builder": "^26.15.3",
+    "postcss": "^8.5.2",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.3",
+    "vite": "^6.1.0",
+    "wait-on": "^8.0.2"
+  }
+}
