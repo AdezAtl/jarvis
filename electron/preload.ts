@@ -18,11 +18,22 @@ export interface IElectronAPI {
   terminateApp: (target: string) => Promise<string>;
   captureScreen: () => Promise<{ dataUrl: string; width: number; height: number }>;
 
-  // Gemini Intelligence
+  // Multi-Model AI (Groq & Gemini)
   sendPrompt: (prompt: string, useVision?: boolean) => Promise<{ text: string; toolCall?: any }>;
   sendAudioPrompt: (base64Audio: string, mimeType?: string) => Promise<{ text: string; toolCall?: any }>;
   setApiKey: (key: string) => Promise<void>;
   getApiKey: () => Promise<string>;
+  setGroqApiKey: (key: string) => Promise<void>;
+  getGroqApiKey: () => Promise<string>;
+  setModel: (model: string, provider?: 'groq' | 'gemini') => Promise<any>;
+  getModelConfig: () => Promise<{
+    provider: 'groq' | 'gemini';
+    model: string;
+    hasGeminiKey: boolean;
+    hasGroqKey: boolean;
+    geminiApiKey?: string;
+    groqApiKey?: string;
+  }>;
 }
 
 const api: IElectronAPI = {
@@ -55,6 +66,11 @@ const api: IElectronAPI = {
     ipcRenderer.invoke('gemini:send-audio-prompt', { base64Audio, mimeType }),
   setApiKey: (key: string) => ipcRenderer.invoke('gemini:set-key', key),
   getApiKey: () => ipcRenderer.invoke('gemini:get-key'),
+  setGroqApiKey: (key: string) => ipcRenderer.invoke('ai:set-groq-key', key),
+  getGroqApiKey: () => ipcRenderer.invoke('ai:get-groq-key'),
+  setModel: (model: string, provider?: 'groq' | 'gemini') =>
+    ipcRenderer.invoke('ai:set-model', { model, provider }),
+  getModelConfig: () => ipcRenderer.invoke('ai:get-config'),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', api);

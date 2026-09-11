@@ -250,3 +250,21 @@ ipcMain.handle('gemini:set-key', (_event, key: string) => {
 ipcMain.handle('gemini:get-key', () => {
   return geminiService.getApiKey();
 });
+
+// Multi-Model & Groq Intelligence
+ipcMain.handle('ai:set-model', (_event, { model, provider }: { model: string; provider?: 'groq' | 'gemini' }) => {
+  geminiService.setModel(model, provider);
+  return geminiService.getConfig();
+});
+
+ipcMain.handle('ai:get-config', () => {
+  return geminiService.getConfig();
+});
+
+ipcMain.handle('ai:set-groq-key', (_event, key: string) => {
+  geminiService.setGroqApiKey(key);
+});
+
+ipcMain.handle('ai:get-groq-key', () => {
+  return geminiService.getGroqApiKey();
+});

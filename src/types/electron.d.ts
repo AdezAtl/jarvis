@@ -45,6 +45,17 @@ export interface IElectronAPI {
   }>;
   setApiKey: (key: string) => Promise<void>;
   getApiKey: () => Promise<string>;
+  setGroqApiKey: (key: string) => Promise<void>;
+  getGroqApiKey: () => Promise<string>;
+  setModel: (model: string, provider?: 'groq' | 'gemini') => Promise<any>;
+  getModelConfig: () => Promise<{
+    provider: 'groq' | 'gemini';
+    model: string;
+    hasGeminiKey: boolean;
+    hasGroqKey: boolean;
+    geminiApiKey?: string;
+    groqApiKey?: string;
+  }>;
 }
 
 declare global {

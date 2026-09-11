@@ -16,6 +16,8 @@ import {
   Globe,
   Radio,
   Music,
+  Cpu,
+  ChevronDown,
 } from 'lucide-react';
 import { animate } from 'animejs';
 import { AudioVisualizer } from './AudioVisualizer';
@@ -24,6 +26,15 @@ import { WeatherWidget } from './WeatherWidget';
 import { SystemMetrics } from '../types/electron';
 import { jarvisAudio } from '../services/soundEffects';
 import { LogEntry } from '../App';
+
+export const AVAILABLE_MODELS = [
+  { id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B', provider: 'groq' as const, badge: '⚡ 70B' },
+  { id: 'llama-3.1-8b-instant', label: 'Llama 3.1 8B', provider: 'groq' as const, badge: '🚀 8B' },
+  { id: 'deepseek-r1-distill-llama-70b', label: 'DeepSeek R1 70B', provider: 'groq' as const, badge: '🧠 R1' },
+  { id: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash', provider: 'gemini' as const, badge: '✨ 3.6' },
+  { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash', provider: 'gemini' as const, badge: '⚡ 2.0' },
+  { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash', provider: 'gemini' as const, badge: '1.5' },
+];
 
 interface JarvisHUDProps {
   onCollapse: () => void;
@@ -63,10 +74,42 @@ export const JarvisHUD: React.FC<JarvisHUDProps> = ({
   const [systemVolume, setSystemVolume] = useState(70);
   const [isMuted, setIsMuted] = useState(false);
   const [isAudioMuted, setIsAudioMuted] = useState(jarvisAudio.getMuted());
+  const [activeModel, setActiveModel] = useState<string>('llama-3.3-70b-versatile');
+  const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
 
   const toggleAudioMute = () => {
     const next = jarvisAudio.toggleMute();
     setIsAudioMuted(next);
+  };
+
+  useEffect(() => {
+    const saved = localStorage.getItem('jarvis_selected_model');
+    if (saved) {
+      setActiveModel(saved);
+      if (window.electronAPI?.setModel) {
+        const found = AVAILABLE_MODELS.find((m) => m.id === saved);
+        window.electronAPI.setModel(saved, found?.provider);
+      }
+    } else if (window.electronAPI?.getModelConfig) {
+      window.electronAPI.getModelConfig().then((cfg) => {
+        if (cfg?.model) {
+          setActiveModel(cfg.model);
+        }
+      });
+    }
+  }, []);
+
+  const handleModelSwitch = async (model: typeof AVAILABLE_MODELS[0]) => {
+    setActiveModel(model.id);
+    setIsModelDropdownOpen(false);
+    jarvisAudio.playChirp();
+    try {
+      localStorage.setItem('jarvis_selected_model', model.id);
+    } catch {}
+    if (window.electronAPI?.setModel) {
+      await window.electronAPI.setModel(model.id, model.provider);
+    }
+    addLog('system', `Neural core switched to ${model.label} [${model.provider.toUpperCase()}]. Ready, sir.`);
   };
 
   const logContainerRef = useRef<HTMLDivElement | null>(null);
@@ -508,10 +551,77 @@ export const JarvisHUD: React.FC<JarvisHUDProps> = ({
         {/* ================= COLUMN 3: NEURAL TERMINAL & VISION (4 cols) ================= */}
         <div className="col-span-4 h-full min-h-0 flex flex-col gap-2.5 overflow-hidden">
           {/* Terminal Header & Screen Vision Bar */}
-          <div className="flex items-center justify-between p-2 rounded-lg bg-slate-950/70 border border-cyan-500/25 text-xs font-mono shrink-0">
-            <div className="flex items-center gap-1.5 text-cyan-400 font-bold">
-              <Terminal size={13} />
-              <span>NEURAL MATRIX // GEMINI 3.6</span>
+          <div className="flex items-center justify-between p-2 rounded-lg bg-slate-950/70 border border-cyan-500/25 text-xs font-mono shrink-0 relative z-30">
+            {/* Interactive Model Switcher Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
+                className="flex items-center gap-1.5 px-2 py-1 rounded bg-slate-900/90 border border-cyan-500/40 text-cyan-300 hover:border-cyan-300 hover:bg-cyan-500/15 transition-all text-[10px] font-mono tracking-wide"
+                title="Click to switch AI Model & Provider"
+              >
+                <Cpu size={12} className="text-cyan-400 animate-pulse" />
+                <span className="font-bold text-cyan-200">
+                  {AVAILABLE_MODELS.find((m) => m.id === activeModel)?.label || activeModel}
+                </span>
+                <span
+                  className={`px-1 rounded text-[8px] font-bold ${
+                    AVAILABLE_MODELS.find((m) => m.id === activeModel)?.provider === 'groq'
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                      : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                  }`}
+                >
+                  {AVAILABLE_MODELS.find((m) => m.id === activeModel)?.provider.toUpperCase() || 'AI'}
+                </span>
+                <ChevronDown
+                  size={11}
+                  className={`text-cyan-400 transition-transform ${isModelDropdownOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
+
+              {/* Dropdown Menu */}
+              {isModelDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 w-64 bg-slate-950/98 border border-cyan-500/50 rounded-xl shadow-[0_0_30px_rgba(0,240,255,0.35)] p-2 z-50 backdrop-blur-md space-y-1.5 font-mono">
+                  <div className="text-[9px] text-amber-400/90 font-bold px-1.5 uppercase tracking-wider flex items-center gap-1">
+                    <span>⚡ GROQ LPUs (Ultra-Fast)</span>
+                  </div>
+                  {AVAILABLE_MODELS.filter((m) => m.provider === 'groq').map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => handleModelSwitch(m)}
+                      className={`w-full flex items-center justify-between px-2 py-1.5 rounded text-left transition-colors text-[10px] ${
+                        activeModel === m.id
+                          ? 'bg-amber-500/20 border border-amber-400/60 text-amber-200 font-bold'
+                          : 'hover:bg-slate-900 text-slate-300 hover:text-cyan-200'
+                      }`}
+                    >
+                      <span>{m.label}</span>
+                      <span className="text-[8px] px-1 py-0.5 rounded bg-amber-950/60 border border-amber-500/30 text-amber-300">
+                        {m.badge}
+                      </span>
+                    </button>
+                  ))}
+
+                  <div className="text-[9px] text-cyan-400/90 font-bold px-1.5 pt-1 uppercase tracking-wider border-t border-cyan-500/20 flex items-center gap-1">
+                    <span>✨ GOOGLE GEMINI</span>
+                  </div>
+                  {AVAILABLE_MODELS.filter((m) => m.provider === 'gemini').map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => handleModelSwitch(m)}
+                      className={`w-full flex items-center justify-between px-2 py-1.5 rounded text-left transition-colors text-[10px] ${
+                        activeModel === m.id
+                          ? 'bg-cyan-500/20 border border-cyan-400/60 text-cyan-200 font-bold'
+                          : 'hover:bg-slate-900 text-slate-300 hover:text-cyan-200'
+                      }`}
+                    >
+                      <span>{m.label}</span>
+                      <span className="text-[8px] px-1 py-0.5 rounded bg-cyan-950/60 border border-cyan-500/30 text-cyan-300">
+                        {m.badge}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-1.5">
               <button
