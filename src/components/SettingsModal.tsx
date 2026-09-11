@@ -10,7 +10,7 @@ interface SettingsModalProps {
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const [groqApiKey, setGroqApiKey] = useState('');
   const [geminiApiKey, setGeminiApiKey] = useState('');
-  const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
+  const [selectedModel, setSelectedModel] = useState('openai/gpt-oss-120b');
   const [status, setStatus] = useState<string | null>(null);
 
   useEffect(() => {

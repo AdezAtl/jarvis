@@ -28,9 +28,9 @@ import { jarvisAudio } from '../services/soundEffects';
 import { LogEntry } from '../App';
 
 export const AVAILABLE_MODELS = [
-  { id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B', provider: 'groq' as const, badge: '⚡ 70B' },
-  { id: 'llama-3.1-8b-instant', label: 'Llama 3.1 8B', provider: 'groq' as const, badge: '🚀 8B' },
-  { id: 'deepseek-r1-distill-llama-70b', label: 'DeepSeek R1 70B', provider: 'groq' as const, badge: '🧠 R1' },
+  { id: 'openai/gpt-oss-120b', label: 'GPT-OSS 120B', provider: 'groq' as const, badge: '⚡ 120B' },
+  { id: 'openai/gpt-oss-20b', label: 'GPT-OSS 20B', provider: 'groq' as const, badge: '🚀 20B' },
+  { id: 'qwen/qwen3.8-27b', label: 'Qwen 3.8 27B', provider: 'groq' as const, badge: '🧠 27B' },
   { id: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash', provider: 'gemini' as const, badge: '✨ 3.6' },
   { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash', provider: 'gemini' as const, badge: '⚡ 2.0' },
   { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash', provider: 'gemini' as const, badge: '1.5' },
@@ -74,7 +74,7 @@ export const JarvisHUD: React.FC<JarvisHUDProps> = ({
   const [systemVolume, setSystemVolume] = useState(70);
   const [isMuted, setIsMuted] = useState(false);
   const [isAudioMuted, setIsAudioMuted] = useState(jarvisAudio.getMuted());
-  const [activeModel, setActiveModel] = useState<string>('llama-3.3-70b-versatile');
+  const [activeModel, setActiveModel] = useState<string>('openai/gpt-oss-120b');
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
 
   const toggleAudioMute = () => {

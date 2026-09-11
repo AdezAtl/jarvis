@@ -21,9 +21,9 @@ export interface AIModelOption {
 }
 
 export const SUPPORTED_MODELS: AIModelOption[] = [
-  { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B', provider: 'groq', badge: '⚡ 70B Tools' },
-  { id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B', provider: 'groq', badge: '🚀 8B Fast' },
-  { id: 'deepseek-r1-distill-llama-70b', name: 'DeepSeek R1 70B', provider: 'groq', badge: '🧠 DeepSeek' },
+  { id: 'openai/gpt-oss-120b', name: 'GPT-OSS 120B', provider: 'groq', badge: '⚡ 120B Flagship' },
+  { id: 'openai/gpt-oss-20b', name: 'GPT-OSS 20B', provider: 'groq', badge: '🚀 20B Fast' },
+  { id: 'qwen/qwen3.8-27b', name: 'Qwen 3.8 27B', provider: 'groq', badge: '🧠 27B' },
   { id: 'gemini-3.6-flash', name: 'Gemini 3.6 Flash', provider: 'gemini', badge: '✨ Gemini' },
   { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', provider: 'gemini', badge: '⚡ Flash 2.0' },
   { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'gemini', badge: 'Standard' },
@@ -33,7 +33,7 @@ export class GeminiService {
   private geminiApiKey: string = process.env.GEMINI_API_KEY || '';
   private groqApiKey: string = process.env.GROQ_API_KEY || '';
   private provider: AIProvider = 'groq';
-  private model: string = 'llama-3.3-70b-versatile';
+  private model: string = 'openai/gpt-oss-120b';
 
   private geminiHistory: Array<{ role: 'user' | 'model'; parts: Array<Record<string, unknown>> }> = [];
   private openAIHistory: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = [];
@@ -48,7 +48,7 @@ export class GeminiService {
       this.model = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
     } else if (this.groqApiKey) {
       this.provider = 'groq';
-      this.model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+      this.model = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
     } else if (this.geminiApiKey) {
       this.provider = 'gemini';
       this.model = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
