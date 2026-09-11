@@ -21,6 +21,7 @@ import { AudioVisualizer } from './AudioVisualizer';
 import { TelemetryRadar } from './TelemetryRadar';
 import { WeatherWidget } from './WeatherWidget';
 import { SystemMetrics } from '../types/electron';
+import { jarvisAudio } from '../services/soundEffects';
 
 interface JarvisHUDProps {
   onCollapse: () => void;
@@ -58,6 +59,12 @@ export const JarvisHUD: React.FC<JarvisHUDProps> = ({
   const [currentTime, setCurrentTime] = useState('');
   const [systemVolume, setSystemVolume] = useState(70);
   const [isMuted, setIsMuted] = useState(false);
+  const [isAudioMuted, setIsAudioMuted] = useState(jarvisAudio.getMuted());
+
+  const toggleAudioMute = () => {
+    const next = jarvisAudio.toggleMute();
+    setIsAudioMuted(next);
+  };
 
   const [logs, setLogs] = useState<LogEntry[]>([
     {
@@ -77,6 +84,8 @@ export const JarvisHUD: React.FC<JarvisHUDProps> = ({
         addLog('user', voiceEvent.userText);
       }
       addLog('jarvis', voiceEvent.responseText, voiceEvent.toolCall);
+      jarvisAudio.playSuccess();
+      jarvisAudio.speak(voiceEvent.responseText);
     }
   }, [voiceEvent]);
 
@@ -119,6 +128,7 @@ export const JarvisHUD: React.FC<JarvisHUDProps> = ({
     const query = (customText ?? inputPrompt).trim();
     if (!query) return;
 
+    jarvisAudio.playChirp();
     setInputPrompt('');
     addLog('user', query);
     setIsProcessing(true);
@@ -135,9 +145,14 @@ export const JarvisHUD: React.FC<JarvisHUDProps> = ({
           response.text,
           response.toolCall ? { name: response.toolCall.name, result: response.toolCall.result } : undefined
         );
+        jarvisAudio.playSuccess();
+        jarvisAudio.speak(response.text);
       } else {
         setTimeout(() => {
-          addLog('jarvis', `Simulated response to "${query}". Systems fully operational, sir.`);
+          const simText = `Simulated response to "${query}". Systems fully operational, sir.`;
+          addLog('jarvis', simText);
+          jarvisAudio.playSuccess();
+          jarvisAudio.speak(simText);
         }, 600);
       }
     } catch (err: unknown) {
@@ -159,6 +174,7 @@ export const JarvisHUD: React.FC<JarvisHUDProps> = ({
   };
 
   const handleMedia = async (action: 'play_pause' | 'next' | 'prev') => {
+    jarvisAudio.playChirp();
     if (window.electronAPI) {
       const res = await window.electronAPI.controlMedia(action);
       addLog('system', res);
@@ -166,6 +182,7 @@ export const JarvisHUD: React.FC<JarvisHUDProps> = ({
   };
 
   const handleQuickLaunch = async (target: string) => {
+    jarvisAudio.playChirp();
     if (window.electronAPI) {
       const res = await window.electronAPI.launchApp(target);
       addLog('system', res);
@@ -229,6 +246,17 @@ export const JarvisHUD: React.FC<JarvisHUDProps> = ({
 
         {/* Right: Window & Configuration Controls */}
         <div className="flex items-center gap-2 app-no-drag">
+          <button
+            onClick={toggleAudioMute}
+            className={`p-1.5 rounded-lg border transition-colors bg-slate-950/70 ${
+              isAudioMuted
+                ? 'border-amber-500/50 text-amber-400 hover:text-amber-200 hover:border-amber-300'
+                : 'border-cyan-500/30 text-cyan-400 hover:text-cyan-200 hover:border-cyan-400 hover:bg-cyan-500/10'
+            }`}
+            title={isAudioMuted ? 'Unmute J.A.R.V.I.S. Audio & Voice' : 'Mute J.A.R.V.I.S. Audio & Voice'}
+          >
+            {isAudioMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+          </button>
           <button
             onClick={onOpenSettings}
             className="p-1.5 rounded-lg border border-cyan-500/30 text-cyan-400 hover:text-cyan-200 hover:border-cyan-400 hover:bg-cyan-500/10 transition-colors bg-slate-950/70"

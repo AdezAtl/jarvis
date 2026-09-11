@@ -1,6 +1,5 @@
 const fs = require('fs-extra');
 const path = require('path');
-const asar = require('@electron/asar');
 const resedit = require('resedit');
 
 async function build() {
@@ -11,14 +10,18 @@ async function build() {
   const iconPath = path.join(rootDir, 'build', 'icon.ico');
 
   console.log('1. Preparing release folder at:', outDir);
-  await fs.remove(outDir);
   await fs.ensureDir(outDir);
 
-  console.log('2. Copying Electron binary runtime...');
-  await fs.copy(electronDist, outDir);
-
   const exePath = path.join(outDir, 'JARVIS.exe');
-  await fs.rename(path.join(outDir, 'electron.exe'), exePath);
+  const electronExe = path.join(outDir, 'electron.exe');
+
+  if (!await fs.pathExists(exePath)) {
+    console.log('2. Copying Electron binary runtime...');
+    await fs.copy(electronDist, outDir);
+    if (await fs.pathExists(electronExe)) {
+      await fs.rename(electronExe, exePath);
+    }
+  }
 
   console.log('3. Assembling application resources...');
   await fs.ensureDir(appTarget);
@@ -29,8 +32,7 @@ async function build() {
   
   if (await fs.pathExists(path.join(rootDir, '.env'))) {
     await fs.copy(path.join(rootDir, '.env'), path.join(appTarget, '.env'));
-    // Also place .env next to the exe for easy access
-    await fs.copy(path.join(rootDir, '.env'), path.join(outDir, '.env'));
+    await fs.copy(path.join(rootDir, '.env'), path.join(outDir, '.env')).catch(() => {});
   }
 
   // Copy runtime node_modules
@@ -74,10 +76,10 @@ async function build() {
     await fs.writeFile(exePath, Buffer.from(exe.generate()));
     console.log('-> Successfully patched icon and version metadata into JARVIS.exe!');
   } catch (err) {
-    console.warn('-> Warning while patching metadata (exe is still fully functional):', err.message);
+    console.warn('-> Notice for metadata:', err.message);
   }
 
-  console.log('\nSUCCESS! Windows application created at:');
+  console.log('\nSUCCESS! Windows application updated at:');
   console.log(exePath);
 }
 

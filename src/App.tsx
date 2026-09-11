@@ -3,6 +3,7 @@ import { CoreOrb } from './components/CoreOrb';
 import { JarvisHUD } from './components/JarvisHUD';
 import { SettingsModal } from './components/SettingsModal';
 import { SystemMetrics } from './types/electron';
+import { jarvisAudio } from './services/soundEffects';
 
 export const App: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -19,6 +20,12 @@ export const App: React.FC = () => {
   const handleToggleExpand = async (targetState?: boolean) => {
     const nextState = targetState !== undefined ? targetState : !isExpanded;
     setIsExpanded(nextState);
+
+    if (nextState) {
+      jarvisAudio.playBoot();
+    } else {
+      jarvisAudio.playCollapse();
+    }
 
     if (window.electronAPI) {
       await window.electronAPI.toggleExpand(nextState);
@@ -94,6 +101,7 @@ export const App: React.FC = () => {
       setAnalyserNode(analyser);
       setIsAudioActive(true);
       setStatus('listening');
+      jarvisAudio.playListenStart();
 
       // Native MediaRecorder recording for Gemini multimodal audio
       audioChunksRef.current = [];

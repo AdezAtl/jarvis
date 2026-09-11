@@ -65,7 +65,7 @@ A sci-fi cybernetic desktop HUD and floating system overlay for Windows, powered
    Open `.env` and add your Gemini API key:
    ```env
    GEMINI_API_KEY=your_actual_gemini_api_key_here
-   GEMINI_MODEL=gemini-2.5-flash
+   GEMINI_MODEL=gemini-3.6-flash
    ```
    *(Note: You can also update the key at any time inside the app via the HUD Settings modal).*
 
