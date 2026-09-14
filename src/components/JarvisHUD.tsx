@@ -19,7 +19,7 @@ import {
   Cpu,
   ChevronDown,
 } from 'lucide-react';
-import { animate } from 'animejs';
+import { animate, stagger } from 'animejs';
 import { AudioVisualizer } from './AudioVisualizer';
 import { TelemetryRadar } from './TelemetryRadar';
 import { WeatherWidget } from './WeatherWidget';
@@ -76,11 +76,34 @@ export const JarvisHUD: React.FC<JarvisHUDProps> = ({
   const [isAudioMuted, setIsAudioMuted] = useState(jarvisAudio.getMuted());
   const [activeModel, setActiveModel] = useState<string>('openai/gpt-oss-120b');
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
+  const isDraggingVolumeRef = useRef(false);
 
   const toggleAudioMute = () => {
     const next = jarvisAudio.toggleMute();
     setIsAudioMuted(next);
   };
+
+  // Sync real-time master volume from Windows metrics polling
+  useEffect(() => {
+    if (!isDraggingVolumeRef.current && metrics && typeof metrics.systemVolume === 'number') {
+      setSystemVolume(metrics.systemVolume);
+      if (typeof metrics.isVolumeMuted === 'boolean') {
+        setIsMuted(metrics.isVolumeMuted);
+      }
+    }
+  }, [metrics?.systemVolume, metrics?.isVolumeMuted]);
+
+  // Query exact master volume on mount
+  useEffect(() => {
+    if (window.electronAPI?.getVolume) {
+      window.electronAPI.getVolume().then((res) => {
+        if (typeof res?.volume === 'number') {
+          setSystemVolume(res.volume);
+          setIsMuted(res.isMuted);
+        }
+      }).catch(() => {});
+    }
+  }, []);
 
   useEffect(() => {
     const saved = localStorage.getItem('jarvis_selected_model');
@@ -128,7 +151,7 @@ export const JarvisHUD: React.FC<JarvisHUDProps> = ({
         strokeDashoffset: 0,
         opacity: [0.1, 1],
         duration: 950,
-        delay: (_el: any, i: number) => i * 65,
+        delay: stagger(65),
         ease: 'inOutSine',
       });
     } catch (err) {
@@ -202,6 +225,20 @@ export const JarvisHUD: React.FC<JarvisHUDProps> = ({
     if (window.electronAPI) {
       const res = await window.electronAPI.adjustVolume(vol, true);
       addLog('system', res);
+    }
+  };
+
+  const handleToggleMute = async () => {
+    const nextMute = !isMuted;
+    setIsMuted(nextMute);
+    jarvisAudio.playChirp();
+    if (window.electronAPI?.setMute) {
+      const res = await window.electronAPI.setMute(nextMute);
+      setSystemVolume(res.volume);
+      setIsMuted(res.isMuted);
+      addLog('system', nextMute ? 'System audio muted' : `System audio unmuted (${res.volume}%)`);
+    } else {
+      handleVolumeChange(nextMute ? 0 : (systemVolume || 50));
     }
   };
 
@@ -414,9 +451,9 @@ export const JarvisHUD: React.FC<JarvisHUDProps> = ({
         <div className="col-span-5 h-full min-h-0 flex flex-col justify-between items-center px-2 overflow-hidden">
           {/* Reactor Container with Rotating Sci-Fi Rings */}
           <div className="relative w-64 h-64 flex items-center justify-center my-auto">
-            {/* Concentric rotating tech rings */}
-            <div className="absolute inset-0 rounded-full border border-dashed border-cyan-500/25 animate-spin-slow pointer-events-none" />
-            <div className="absolute inset-4 rounded-full border-2 border-t-cyan-400 border-r-transparent border-b-cyan-500/30 border-l-transparent animate-spin-reverse-slow pointer-events-none" />
+            {/* Concentric rotating tech rings with GPU compositing */}
+            <div className="absolute inset-0 rounded-full border border-dashed border-cyan-500/25 animate-spin-slow will-change-transform transform-gpu pointer-events-none" />
+            <div className="absolute inset-4 rounded-full border-2 border-t-cyan-400 border-r-transparent border-b-cyan-500/30 border-l-transparent animate-spin-reverse-slow will-change-transform transform-gpu pointer-events-none" />
             <div className="absolute inset-8 rounded-full border border-cyan-400/20 pointer-events-none" />
 
             {/* Audio Waveform Canvas */}
@@ -459,7 +496,7 @@ export const JarvisHUD: React.FC<JarvisHUDProps> = ({
             {/* Volume Control Bar */}
             <div className="flex items-center gap-3">
               <button
-                onClick={() => handleVolumeChange(isMuted ? 50 : 0)}
+                onClick={handleToggleMute}
                 className="text-cyan-400 hover:text-cyan-200 transition-colors"
                 title={isMuted ? 'Unmute' : 'Mute'}
               >
@@ -470,6 +507,10 @@ export const JarvisHUD: React.FC<JarvisHUDProps> = ({
                 min="0"
                 max="100"
                 value={systemVolume}
+                onMouseDown={() => { isDraggingVolumeRef.current = true; }}
+                onMouseUp={() => { isDraggingVolumeRef.current = false; }}
+                onTouchStart={() => { isDraggingVolumeRef.current = true; }}
+                onTouchEnd={() => { isDraggingVolumeRef.current = false; }}
                 onChange={(e) => handleVolumeChange(Number(e.target.value))}
                 className="w-full accent-cyan-400 h-1.5 bg-slate-900 rounded-lg cursor-pointer"
               />

@@ -12,6 +12,8 @@ export interface IElectronAPI {
   // System Automation
   getMetrics: () => Promise<any>;
   adjustVolume: (level: number, isAbsolute?: boolean) => Promise<string>;
+  getVolume?: () => Promise<{ volume: number; isMuted: boolean }>;
+  setMute?: (mute: boolean) => Promise<{ volume: number; isMuted: boolean }>;
   controlMedia: (action: 'play_pause' | 'next' | 'prev') => Promise<string>;
   launchApp: (target: string) => Promise<string>;
   focusApp: (target: string) => Promise<string>;
@@ -53,6 +55,8 @@ const api: IElectronAPI = {
   getMetrics: () => ipcRenderer.invoke('system:get-metrics'),
   adjustVolume: (level: number, isAbsolute = false) =>
     ipcRenderer.invoke('system:adjust-volume', { level, isAbsolute }),
+  getVolume: () => ipcRenderer.invoke('system:get-volume'),
+  setMute: (mute: boolean) => ipcRenderer.invoke('system:set-mute', mute),
   controlMedia: (action: 'play_pause' | 'next' | 'prev') =>
     ipcRenderer.invoke('system:control-media', action),
   launchApp: (target: string) => ipcRenderer.invoke('system:launch-app', target),

@@ -23,7 +23,7 @@ if (-not ([System.Management.Automation.PSTypeName]'NativeKeys').Type) {
 }
 
 switch ($action.ToLower()) {
-    'play_pause'  { [NativeKeys]::SendKey(0xCD, 1); Write-Output "Media: Play/Pause toggled" }
+    'play_pause'  { [NativeKeys]::SendKey(0xB3, 1); Write-Output "Media: Play/Pause toggled" }
     'next'        { [NativeKeys]::SendKey(0xB0, 1); Write-Output "Media: Next Track" }
     'prev'        { [NativeKeys]::SendKey(0xB1, 1); Write-Output "Media: Previous Track" }
     'volume_up'   { [NativeKeys]::SendKey(0xAF, [Math]::Max(1, $count)); Write-Output "Volume: Up $count steps" }

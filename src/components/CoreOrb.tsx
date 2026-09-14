@@ -84,7 +84,7 @@ export const CoreOrb: React.FC<CoreOrbProps> = ({ onExpand, status }) => {
     >
       {/* Outer Rotating Micro Ring (20x20) */}
       <div
-        className={`absolute inset-0 rounded-full border border-dashed ${ringBorder} animate-spin-slow group-hover:scale-110 transition-transform duration-300`}
+        className={`absolute inset-0 rounded-full border border-dashed ${ringBorder} animate-spin-slow will-change-transform transform-gpu group-hover:scale-110 transition-transform duration-300`}
       />
 
       {/* Central Pulsing Glowing Core (8x8) */}

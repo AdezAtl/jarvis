@@ -9,6 +9,8 @@ export interface SystemMetrics {
   diskTotalGb: number;
   diskPercent: number;
   osName: string;
+  systemVolume?: number;
+  isVolumeMuted?: boolean;
 }
 
 export interface IElectronAPI {
@@ -21,6 +23,8 @@ export interface IElectronAPI {
 
   getMetrics: () => Promise<SystemMetrics>;
   adjustVolume: (level: number, isAbsolute?: boolean) => Promise<string>;
+  getVolume?: () => Promise<{ volume: number; isMuted: boolean }>;
+  setMute?: (mute: boolean) => Promise<{ volume: number; isMuted: boolean }>;
   controlMedia: (action: 'play_pause' | 'next' | 'prev') => Promise<string>;
   launchApp: (target: string) => Promise<string>;
   focusApp: (target: string) => Promise<string>;

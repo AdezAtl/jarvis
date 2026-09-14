@@ -139,7 +139,8 @@ export const App: React.FC = () => {
     };
 
     fetchMetrics();
-    const interval = setInterval(fetchMetrics, isExpanded ? 2500 : 8000);
+    // Optimized interval: 3.5s when active HUD is open, 12s when collapsed in background
+    const interval = setInterval(fetchMetrics, isExpanded ? 3500 : 12000);
 
     return () => {
       isMounted = false;

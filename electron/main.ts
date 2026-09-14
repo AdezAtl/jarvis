@@ -215,6 +215,14 @@ ipcMain.handle('system:adjust-volume', async (_event, { level, isAbsolute }: { l
   return await systemControl.adjustVolume(level, isAbsolute);
 });
 
+ipcMain.handle('system:get-volume', async () => {
+  return await systemControl.getVolume();
+});
+
+ipcMain.handle('system:set-mute', async (_event, mute: boolean) => {
+  return await systemControl.setMute(mute);
+});
+
 ipcMain.handle('system:control-media', async (_event, action: 'play_pause' | 'next' | 'prev') => {
   return await systemControl.mediaControl(action);
 });
